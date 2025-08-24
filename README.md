@@ -1,1 +1,1 @@
-# YOPO: You Only Plan Once — A Self-Abstracting Planning Layer for LLMs# YOPO-You-Only-Plan-Once
+# YOPO: You Only Plan Once — Eliminating Cold Start in LLM Agents via a DAG-Based Self-Abstracting Planning Layer
