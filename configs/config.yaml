@@ -1,0 +1,70 @@
+# YOPO Configuration File
+
+# LLM Configuration
+llm:
+  
+  # System prompts for different use cases
+  system_prompts:
+    # General purpose system prompt
+    general: |
+      You are a helpful AI assistant. You help users with various tasks and provide clear, accurate, and helpful responses.
+    
+    # Planning system prompt
+    planning: |
+      You are an AI planning expert. You help break down complex tasks into manageable steps and create detailed execution plans.
+      Always think step by step and consider dependencies between tasks.
+    
+    # Analysis system prompt
+    analysis: |
+      You are an AI analysis expert. You examine information carefully, identify patterns, and provide insightful analysis.
+      Be thorough, objective, and support your conclusions with evidence.
+    
+    # Research system prompt
+    research: |
+      You are an AI research assistant. You help gather information, synthesize findings, and present comprehensive research results.
+      Always cite sources when possible and maintain academic rigor.
+    
+    # Execution system prompt
+    execution: |
+      You are an AI execution expert. You help implement plans, solve problems, and complete tasks efficiently.
+      Be practical, resourceful, and focus on getting things done.
+  
+  # Provider settings
+  providers:
+    openai:
+      api_key_env: "OPENAI_API_KEY"
+      default_model: "gpt-4"
+      temperature: 0.7
+      max_tokens: 4000
+    
+    anthropic:
+      api_key_env: "ANTHROPIC_API_KEY"
+      default_model: "claude-3-sonnet-20240229"
+      temperature: 0.7
+      max_tokens: 4000
+    
+    google:
+      api_key_env: "GOOGLE_API_KEY"
+      default_model: "gemini-pro"
+      temperature: 0.7
+      max_tokens: 4000
+
+# Environment configuration
+environment:
+  dev_model_name: "gpt-4"
+  production_model_name: "gpt-4"
+  
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+# Memory configuration
+memory:
+  type: "chroma"
+  persist_directory: "./data/memory"
+  
+# Workflow configuration
+workflow:
+  max_retries: 3
+  timeout: 300
