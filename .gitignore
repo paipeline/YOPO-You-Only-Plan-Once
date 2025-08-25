@@ -8,3 +8,4 @@ wheels/
 # Virtual environments
 .venv
 .env
+src/core/planning/todo.md

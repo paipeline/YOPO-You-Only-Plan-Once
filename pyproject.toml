@@ -4,7 +4,17 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "colorama>=0.4.6",
+    "dotenv>=0.9.9",
+    "dotenv-python>=0.0.1",
+    "langchain>=0.3.27",
+    "langchain-anthropic>=0.3.19",
+    "langchain-gemini>=0.1.1",
+    "langchain-google-genai>=2.1.9",
+    "langchain-openai>=0.3.31",
+    "langgraph>=0.6.6",
+]
 
 [dependency-groups]
 dev = [
