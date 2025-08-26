@@ -1,16 +1,13 @@
 
 import os
-from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List, Type, get_type_hints
 import logging
-from dotenv import load_dotenv
 import inspect
 import importlib
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from src.core.operators.llm.llm_provider import llm_instance
 from src.core.operators.base_op import BaseOperator
 
 class OperatorInfo(BaseModel):
@@ -21,6 +18,9 @@ class OperatorInfo(BaseModel):
     module_path: str = Field(description="Module path where operator is defined")
     args_schema: Dict[str, Any] = Field(description="Arguments schema for arun method")
 
+########################################################################
+######################## MAIN CLASSES ##################################
+########################################################################
 
 class OperatorManager:
     """
@@ -212,23 +212,26 @@ class OperatorManager:
         return self._operator_info[operator_name]
 
 # Global operator zoo instance
-_global_operator_zoo: Optional[OperatorManager] = None
+_global_operator_manager: Optional[OperatorManager] = None
 
 
-def get_operator_zoo() -> OperatorManager:
+def get_operator_manager() -> OperatorManager:
     """
     Get the global operator zoo instance.
     
     Returns:
         OperatorZoo: Global operator zoo instance
     """
-    global _global_operator_zoo
-    if _global_operator_zoo is None:
-        _global_operator_zoo = OperatorManager()
-    return _global_operator_zoo
+    global _global_operator_manager
+    if _global_operator_manager is None:
+        _global_operator_manager = OperatorManager()
+    return _global_operator_manager
 
 
 # Convenience functions for the two main interfaces
+########################################################################
+######################## MAIN ENTRY FUNCTION ###########################
+########################################################################
 
 def get_all_operators() -> List[OperatorInfo]:
     """
@@ -237,7 +240,7 @@ def get_all_operators() -> List[OperatorInfo]:
     Returns:
         List[OperatorInfo]: List of all available operators with their complete information
     """
-    return get_operator_zoo().get_all_operator_infos()
+    return get_operator_manager().get_all_operator_infos()
 
 
 def get_operator_instance(operator_name: str, **kwargs) -> BaseOperator:
@@ -251,7 +254,7 @@ def get_operator_instance(operator_name: str, **kwargs) -> BaseOperator:
     Returns:
         BaseOperator: Instance of the requested operator
     """
-    return get_operator_zoo().get_operator_instance(operator_name, **kwargs)
+    return get_operator_manager().get_operator_instance(operator_name, **kwargs)
 
 
 
