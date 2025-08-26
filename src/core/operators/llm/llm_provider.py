@@ -186,12 +186,7 @@ def llm_instance(model_name: str, system_prompt: Optional[str] = None, **kwargs)
         
     Returns:
         LLMProvider instance
-        
-    Raises:
-        ValueError: If model_name is None or empty
     """
-    if not model_name:
-        raise ValueError("model_name cannot be None or empty")
     return LLMProviderFactory.create_provider("langchain", model_name, system_prompt=system_prompt, **kwargs)
 
 
