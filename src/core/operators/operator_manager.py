@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 import inspect
 import importlib
 from pathlib import Path
-import sys
-sys.path.append("/Users/jakcieshi/Desktop/Home/Projects/FreeLan/YOPO")
+
 from pydantic import BaseModel, Field
 
 from src.core.operators.llm.llm_provider import llm_instance

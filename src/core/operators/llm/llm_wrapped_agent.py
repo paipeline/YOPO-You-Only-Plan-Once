@@ -5,8 +5,6 @@ import json
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import logging
-import sys
-sys.path.append("/Users/jakcieshi/Desktop/Home/Projects/FreeLan/YOPO")
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
