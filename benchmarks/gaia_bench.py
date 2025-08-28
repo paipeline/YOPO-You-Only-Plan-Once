@@ -102,16 +102,6 @@ class GAIABenchmark(BaseBenchmark):
         return {"default": dataset_dict}
                 
     def format_dataset(self) -> Dict[str, Dataset]:
-        """
-        Process GAIA dataset and return results.
-        
-        This method processes all loaded GAIA questions and returns
-        the results. Note: This requires an operator to be set for
-        actual question answering.
-        
-        Returns:
-            List of GAIAResult objects
-        """
         result: Dict[str, Dataset] = defaultdict()
         queries: Dict[str, List[str]] = defaultdict(list)
         answers: Dict[str, List[str]] = defaultdict(list)

@@ -46,7 +46,7 @@ class GSM8KBenchmark(BaseBenchmark):
         Initialize GSM8K Benchmark.
         
         Args:
-            configs: List of dataset configurations to load (e.g., ['main'])
+            configs: List of dataset configurations to load (e.g., ["main", "socratic"])
         """
         super().__init__(
             name="GSM8K",
@@ -88,19 +88,6 @@ class GSM8KBenchmark(BaseBenchmark):
         return None
     
     def format_dataset(self) -> Dict[str, Dataset]:
-        """
-        Process GSM8K dataset and return results.
-        
-        This method processes all loaded GSM8K questions and returns
-        the results. Note: This requires an operator to be set for
-        actual question answering.
-        
-        Returns:
-            List of GSM8KResult objects
-            [
-                {"type": "text", "text":"..."}
-            ]
-        """
         result: Dict[str, Dataset] = defaultdict()
         queries: Dict[str, List[str]] = defaultdict(list)
         answers: Dict[str, List[str]] = defaultdict(list)

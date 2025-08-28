@@ -44,9 +44,9 @@ class BaseBenchmark(ABC):
         
         Args:
             name: Name of the benchmark
-            description: Description of the benchmark
-            cache_dir: Directory to cache downloaded datasets
-            **kwargs: Additional configuration parameters
+            huggingface_path: Optional path to HuggingFace dataset
+            local_path: Optional path to local dataset files
+            configs: Optional list of dataset configurations to load
         """
         self.name = name
 
@@ -137,17 +137,14 @@ class BaseBenchmark(ABC):
     @abstractmethod
     def format_dataset(self) -> Dict[str, Dataset]:
         """
-        Process a single data example or batch of examples.
+        Format and return the dataset for benchmark evaluation.
         
         This method must be implemented by all concrete benchmark classes
-        to define how the loaded data should be processed, evaluated, or
-        transformed for the specific benchmark requirements.
-        
-        Args:
-            data: Single example (dict) or batch of examples (list of dicts)
-            **kwargs: Additional processing parameters
+        to define how the loaded dataset should be formatted and structured
+        for evaluation by YOPO operators.
         
         Returns:
-            Processed result (format depends on concrete implementation)
+            Dict[str, Dataset]: Dictionary mapping split names to Dataset objects
+                containing formatted benchmark data ready for evaluation
         """
     
