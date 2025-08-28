@@ -54,7 +54,7 @@ class GAIABenchmark(BaseBenchmark):
         """
         super().__init__(
             name="GAIA",
-            local_path="/Users/jakcieshi/Desktop/Home/Projects/FreeLan/2023",
+            local_path="your_dir_to_gaia",
             configs=configs or ["1", "2", "3"]
         )
         
