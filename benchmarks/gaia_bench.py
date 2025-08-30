@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from collections import defaultdict
 
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 from datasets import DatasetDict, Dataset
 
 from base_benchmark import BaseBenchmark
@@ -138,12 +139,16 @@ class GAIABenchmark(BaseBenchmark):
     def get_csv_columns(self) -> List[str]:
         return ["query", "answer", "agent_answer", "file_name", "score"]
 
+    @retry(stop=stop_after_attempt(5), wait=wait_fixed(1), retry=retry_if_exception_type(Exception), reraise=True)
+    async def _agent_run(self, agent, query: str):
+        return await agent.ainvoke(query)
+    
     async def _run_single_evaluation(self, data_dict: Dict[str, Any], agent):
         # FIXME: parse response
         query: str = data_dict["query"]
         answer: str = data_dict["answer"]
 
-        response = await agent.ainvoke(query)
+        response = await self._agent_run(agent, query=query)
         score = 0.
         if response == answer:
             score = 1.0
