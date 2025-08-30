@@ -264,7 +264,8 @@ if __name__ == "__main__":
     import asyncio
     from src.core.operators.file_processing_op import FileProcessingOperator
     from src.core.operators.browser_use_op import BrowserUseOperator
-    from src.tool.tool_manager import get_tools
+    from src.core.operators.mcp_op import MCPOperator
+    from src.tool.tool_manager import get_tools, get_all_base_tool_names, get_tool_infos
 
     async def test_file_processing_operator():
         """Simple test for FileProcessingOperator."""
@@ -272,7 +273,7 @@ if __name__ == "__main__":
         
         file_op = FileProcessingOperator(prompt_path="./prompts/file_processing_prompts.yaml")
         
-        result = await file_op.arun(query="what is the file about?", sources=["/Users/jakcieshi/Desktop/Home/Projects/FreeLan/2023/test/943255a6-8c56-4cf8-9faf-c74743960097.csv"])
+        result = await file_op.arun(query="What are the file about?", sources=["/Users/jakcieshi/Desktop/Home/Projects/FreeLan/2023/test/03c577c9-4227-48a9-9b75-f8f598de14c1.mp3"])
         print(f"Result: {result.base_result}")
     
     async def test_browser_use_operator():
@@ -284,18 +285,35 @@ if __name__ == "__main__":
         result = await browser_op.arun(query="Go to google.com and search for 'OpenAI'. Finally give me one of the founder of this company.")
         print(f"Result: {result.base_result}")
     
+    async def test_mcp_operator():
+        browser_op = MCPOperator(prompt_path="./prompts/mcp_prompts.yaml")
+        
+        context = """
+### Job Listing Qualifications:
+- Degree: Masters Degree or higher in biology, biochemistry, or biotechnology
+- Experience: 3+ years
+- Publications: 3+ publications in the field of biotechnology
+- Citizenship: Part of the qualifications (Country unspecified)
+- Programming: C++, C#, or Fortran experience
+- Language: 1+ second language
+"""
+        result = await browser_op.arun(query="How many applicants for the job are only missing a single qualification?", context={"job_qualifications": context, "source": "/Users/jakcieshi/Desktop/Home/Projects/FreeLan/2023/validation/bfcd99e1-0690-4b53-a85c-0174a8629083/Applicants.xlsx"}, tools=get_tools(tool_base_names=["code_act"]))
+        print(f"Result: {result.base_result}")
+
     # Run the test
-    # asyncio.run(test_browser_use_operator())
+    asyncio.run(test_file_processing_operator())
 
 
     # l = get_all_operators()
     # for info in l:
     #     print(info.model_dump())
-    op = get_operator_instance(operator_name="DeepResearchOperator")
-    async def func(op: BaseOperator):
-        # result = await op.arun(query="The wether in Beijing", tools=get_tools(tool_base_names=["firecrawl_search"]))
-        result = await op.arun(query="The founder of OpenAI. Just give me the name.")
-        print(result)
+    # op = get_operator_instance(operator_name="DeepResearchOperator")
+    # async def func(op: BaseOperator):
+    #     # result = await op.arun(query="The wether in Beijing", tools=get_tools(tool_base_names=["firecrawl_search"]))
+    #     result = await op.arun(query="The founder of OpenAI. Just give me the name.")
+    #     print(result)
     
-    asyncio.run(func(op))
+    # asyncio.run(func(op))
+
+    # print(get_tool_infos())
     

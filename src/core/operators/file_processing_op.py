@@ -12,11 +12,18 @@ import asyncio
 from typing import Dict, Any, Optional, List, TypedDict, Annotated
 import yaml
 import base64
+import io
+from PIL import Image
 
+import numpy as np
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+import ffmpeg
+import cv2
+from scenedetect import open_video, SceneManager
+from scenedetect.detectors import ContentDetector
 
 from src.core.operators.llm.llm_wrapped_agent import create_wrapped_agent
 from src.core.operators.llm.llm_provider import llm_instance, LLMProvider
@@ -43,6 +50,7 @@ class FileProcessingState(TypedDict):
 
 def prepare_content_for_analysis(content: str) -> str:
     """Prepare extracted content for LLM analysis."""
+    # FIXME: compression process
     max_length = 10000  # Limit content length for LLM
     
     if len(content) > max_length:
@@ -54,19 +62,88 @@ def process_image_file(source: str):
     ext = os.path.splitext(source)[-1].lower()
     with open(source, 'rb') as image_file:
         image_data = base64.b64encode(image_file.read()).decode("utf-8")
-    return{
+    return [{
             "type": "image",
             "source_type": "base64",
             "data": image_data,
             "mime_type": f"image/{ext.strip('.')}"
-        }
+        }]
+
+def process_video_file(source: str):
+    def _normalize(img: Image.Image, target_width: int = 512) -> Image.Image:
+        w, h = img.size
+        return img.resize((target_width, int(target_width * h / w)), Image.Resampling.LANCZOS).convert("RGB")
+    
+    def _capture_screenshot(video_file: str, timestamp: float, width: int = 320) -> Image.Image:
+        out, _ = (
+            ffmpeg.input(video_file, ss=timestamp)
+            .filter("scale", width, -1)
+            .output("pipe:", vframes=1, format="image2", vcodec="png")
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+        return Image.open(io.BytesIO(out))
+
+    def _extract_keyframes(
+        video_path: str,
+        frame_interval: float = 4.0,
+        max_frames: int = 100,
+        target_width: int = 512,
+    ):
+        cap = cv2.VideoCapture(video_path)
+        total, fps = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), cap.get(cv2.CAP_PROP_FPS)
+        duration = total / fps if fps else 0
+        cap.release()
+
+        desired = min(max(int(duration / frame_interval) or 1, 1), max_frames)
+
+        video = open_video(video_path)
+        sm = SceneManager()
+        sm.add_detector(ContentDetector())
+        sm.detect_scenes(video)
+        scenes = sm.get_scene_list()
+
+        frames: List[Image.Image] = []
+        if scenes:
+            for i in np.linspace(0, len(scenes) - 1, min(len(scenes), desired), dtype=int):
+                frames.append(_capture_screenshot(video_path, scenes[i][0].get_seconds()))
+        
+        while len(frames) < desired and duration:
+            t = len(frames) * frame_interval
+            try:
+                frames.append(_capture_screenshot(video_path, t))
+            except Exception as e:  # short file edge‑case
+                break
+        
+        normalized = [_normalize(f, target_width) for f in frames]
+
+        
+        content = []
+        for im in normalized:
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=90)
+            image_data = base64.b64encode(buf.getvalue()).decode("utf-8")
+            content.append({
+                "type": "image",
+                "source_type": "base64",
+                "data": image_data,
+                "mime_type": f"image/jpeg"
+            })
+    
+        return content
+    
+    frames_content: List[dict] = _extract_keyframes(source)
+
+    return frames_content
+
 
 def process_file(source: str, converter: MarkitdownConverter):
     content = []
     ext = os.path.splitext(source)[-1].lower()
 
     if ext in ['.png', '.jpg', '.jpeg']:
-        content.append(process_image_file)
+        content.extend(process_image_file(source=source))
+    elif ext in ['.mov']:
+        content.extend(process_video_file(source=source))
     else:
         try:
             extracted_text = converter.convert(source).text_content
@@ -101,6 +178,8 @@ async def file_processing_node(state: FileProcessingState, converter: Markitdown
             file_contents.extend(processed_content)
             print(f"✅ Successfully processed {source}, extracted {len(processed_content)} content item(s)")
         
+        print(file_contents)
+        
         print(f"🎯 Total extracted content items: {len(file_contents)}")
         state.update({
             "extracted_content": file_contents
@@ -108,6 +187,8 @@ async def file_processing_node(state: FileProcessingState, converter: Markitdown
         print("✅ File processing node completed successfully")
 
     except Exception as e:
+        import traceback
+        print(f"📋 Full traceback:\n{traceback.format_exc()}")
         print(f"❌ Error in file processing node: {str(e)}")
         state.update({
             "extracted_content": [],

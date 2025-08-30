@@ -156,20 +156,20 @@ class PdfWithTableConverter(PdfConverter):
 
         tables = read_tables_from_stream(file_stream)
         num_tables = tables.n
-        if num_tables == 0:
-            return DocumentConverterResult(
-                markdown=pdfminer.high_level.extract_text(file_stream),
+        # if num_tables == 0:
+        return DocumentConverterResult(
+            markdown=pdfminer.high_level.extract_text(file_stream),
             )
-        else:
-            markdown_content = pdfminer.high_level.extract_text(file_stream)
-            table_content = ""
-            for i in range(num_tables):
-                table = tables[i].df
-                table_content += f"Table {i + 1}:\n" + table.to_markdown(index=False) + "\n\n"
-            markdown_content += "\n\n" + table_content
-            return DocumentConverterResult(
-                markdown=markdown_content,
-            )
+        # else:
+        #     markdown_content = pdfminer.high_level.extract_text(file_stream)
+        #     table_content = ""
+        #     for i in range(num_tables):
+        #         table = tables[i].df
+        #         table_content += f"Table {i + 1}:\n" + table.to_markdown(index=False) + "\n\n"
+        #     markdown_content += "\n\n" + table_content
+        #     return DocumentConverterResult(
+        #         markdown=markdown_content,
+        #     )
 
 class MarkitdownConverter():
     def __init__(self,

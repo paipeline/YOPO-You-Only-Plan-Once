@@ -28,7 +28,8 @@ class ResearchState(TypedDict):
     """State object for the Deep Research Agent workflow"""
     # Input
     original_query: str
-
+    context: Optional[Dict[str, Any]]
+    
     # Query optimization
     optimized_query: str
     key_concepts: List[str]
@@ -63,10 +64,13 @@ async def optimize_query_node(state: ResearchState, prompts: Dict[str, str]) -> 
         model_name=os.getenv("DEV_MODEL_NAME"),
         system_prompt=prompt
     )
+    original_query = state["original_query"]
+    context: Optional[Dict[str, Any]] = state["context"]
+    user_content = f"Query: {original_query}" if context is None else f"Context: {json.dumps(context, indent=2)}\n\n Query: {original_query}"
 
     messages = [
         {"role": "system", "content": prompt},
-        {"role": "user", "content": f"Original Query: {state['original_query']}"}
+        {"role": "user", "content": user_content}
     ]
     
     response: str = llm_provider.generate(messages)
@@ -327,7 +331,6 @@ async def generate_synthesis_node(state: ResearchState, prompts: Dict[str, str])
     
     return state
 
-
 def should_continue_research(state: ResearchState) -> str:
     """Conditional edge function to determine next step."""
     return "continue" if state.get("should_continue", False) else "synthesize"
@@ -450,6 +453,7 @@ class DeepResearchOperator(BaseOperator):
         # Initialize research state
         initial_state = ResearchState(
             original_query=query,
+            context=context,
             optimized_query="",
             key_concepts=[],
             search_results=[],

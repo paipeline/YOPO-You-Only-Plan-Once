@@ -83,12 +83,12 @@ class ToolManager:
             # Store the initialized tool
             self._tool_bases[name] = tool_instance
             
-            print(f"Initialized tool: {name}")
+            print(f"Initialized tool base: {name}")
             
         except Exception as e:
-            print(f"Failed to initialize tool '{tool_class.__name__}': {e}")
+            print(f"Failed to initialize tool base '{tool_class.__name__}': {e}")
 
-    def get_tool(self, tool_base_name: str) -> Optional[YOPOBaseTool]:
+    def get_tool_base(self, tool_base_name: str) -> Optional[YOPOBaseTool]:
         """
         Get a tool instance by name.
         
