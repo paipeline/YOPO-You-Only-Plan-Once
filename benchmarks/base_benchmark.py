@@ -7,12 +7,13 @@ for data processing that must be implemented by concrete benchmark classes.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union, Iterator
+from typing import Any, Dict, List, Optional, Union, Tuple
 from pathlib import Path
+import asyncio
 import logging
 
+import pandas as pd
 from pydantic import BaseModel, Field
-
 from datasets import Dataset, DatasetDict, load_dataset
 
 
@@ -55,7 +56,8 @@ class BaseBenchmark(ABC):
         self.configs = configs
 
         self.datasets: Dict[str, DatasetDict] = self._load_dataset()
-    
+        self.formatted_datasets: Dict[str, Dataset] = self._format_dataset()
+
         logger.info(f"Initialized {self.name} benchmark")
 
     def _load_dataset(self) -> Dict[str, DatasetDict]:
@@ -105,7 +107,6 @@ class BaseBenchmark(ABC):
         
         return info
     
-    @abstractmethod
     def _load_data_from_local(self):
         """
         Load data from local file system.
@@ -117,6 +118,7 @@ class BaseBenchmark(ABC):
         Returns:
             The loaded data in the appropriate format for the benchmark
         """
+        raise NotImplementedError("_load_data_from_local must be implemented by subclasses")
 
     @abstractmethod
     def _extract_ground_truth_answer(self, text: str):
@@ -135,7 +137,7 @@ class BaseBenchmark(ABC):
         """
 
     @abstractmethod
-    def format_dataset(self) -> Dict[str, Dataset]:
+    def _format_dataset(self) -> Dict[str, Dataset]:
         """
         Format and return the dataset for benchmark evaluation.
         
@@ -148,3 +150,123 @@ class BaseBenchmark(ABC):
                 containing formatted benchmark data ready for evaluation
         """
     
+    @abstractmethod
+    async def _run_single_evaluation(self, data_dict: Dict[str, Any], agent):
+        """
+        Run a single evaluation on a data sample with an agent.
+        
+        This method must be implemented by all concrete benchmark classes
+        to define how to evaluate a single data sample from the benchmark
+        using the provided agent. It should handle the interaction between
+        the agent and the benchmark data, execute the evaluation, and
+        return the results.
+        
+        Args:
+            data_dict: Dictionary containing a single data sample from the benchmark
+                      with keys like 'query', 'answer', and other benchmark-specific fields
+            agent: The agent/model to be evaluated on this data sample
+            
+        Returns:
+            The evaluation result for this single data sample (format depends on benchmark)
+        """
+    
+    @abstractmethod
+    def get_csv_columns(self) -> List[str]:
+        """
+        Get the column names for CSV output format.
+        
+        This method must be implemented by all concrete benchmark classes
+        to define the column headers for CSV output when saving evaluation
+        results. The columns should include at minimum the query, expected
+        answer, agent response, and evaluation score.
+        
+        Returns:
+            List[str]: List of column names for CSV output format
+        """
+    
+    def fetch_datasets_for_training(self) -> Tuple[Union[Dataset, None], Union[Dataset, None]]:
+        """
+        Fetch training and test datasets for benchmark evaluation.
+        
+        This method retrieves the formatted training and test datasets
+        from the benchmark's formatted_datasets dictionary. It looks for
+        datasets with split names "test" and "training" and returns them
+        as a tuple.
+        
+        Returns:
+            Tuple[Dataset, Dataset]: A tuple containing (training_dataset, test_dataset)
+                - training_dataset: Dataset object for training split, or None if not found
+                - test_dataset: Dataset object for test split, or None if not found
+        """
+        training_dataset, test_dataset = None, None
+        for split_name in self.formatted_datasets:
+            if split_name == "test":
+                test_dataset: Dataset = self.formatted_datasets[split_name]
+            elif split_name == "train":
+                training_dataset: Dataset = self.formatted_datasets[split_name]
+        
+        return training_dataset, test_dataset
+
+    async def run_benchmark(self, dataset: Dataset, nums: Optional[int] = None, max_concurrency: int = 10):
+        """
+        """
+        nums: int = nums if nums else len(dataset)
+        
+        # Create semaphore to limit concurrency
+        semaphore = asyncio.Semaphore(max_concurrency)
+        
+        async def run_single_with_semaphore(data_dict: Dict[str, Any], agent, index: int):
+            async with semaphore:
+                return await self._run_single_evaluation(data_dict, agent)
+        
+        # Create tasks for parallel execution
+        tasks: List[asyncio.Task] = []
+        for i in range(nums):
+            data_dict = dataset[i]
+            task = asyncio.create_task(run_single_with_semaphore(data_dict, None, i))
+            tasks.append(task)
+        
+        # Execute all tasks concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results and calculate metrics
+        csv_columns = self.get_csv_columns()
+        csv_data = []
+        total_score = 0.0
+        valid_results = 0
+        
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Task {i} failed with exception: {result}")
+                continue
+                
+            # Create CSV row from result tuple
+            csv_row = {}
+            for j, column in enumerate(csv_columns):
+                if j < len(result):
+                    csv_row[column] = result[j]
+                else:
+                    csv_row[column] = None
+            
+            csv_data.append(csv_row)
+            
+            # Accumulate score (assuming last column is score)
+            if len(result) > 0 and isinstance(result[-1], (int, float)):
+                total_score += result[-1]
+                valid_results += 1
+        
+        # Save to CSV
+        if csv_data:
+            
+            df = pd.DataFrame(csv_data)
+            csv_filename = f"{self.name}_benchmark_results.csv"
+            df.to_csv(csv_filename, index=False)
+            logger.info(f"Results saved to {csv_filename}")
+        
+        # Calculate average score
+        average_score = total_score / valid_results if valid_results > 0 else 0.0
+        logger.info(f"Average score: {average_score:.4f} ({valid_results}/{len(results)} valid results)")
+        
+        return results, average_score
+
+

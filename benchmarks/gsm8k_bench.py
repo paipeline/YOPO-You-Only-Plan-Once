@@ -87,7 +87,7 @@ class GSM8KBenchmark(BaseBenchmark):
         
         return None
     
-    def format_dataset(self) -> Dict[str, Dataset]:
+    def _format_dataset(self) -> Dict[str, Dataset]:
         result: Dict[str, Dataset] = defaultdict()
         queries: Dict[str, List[str]] = defaultdict(list)
         answers: Dict[str, List[str]] = defaultdict(list)
@@ -112,6 +112,20 @@ class GSM8KBenchmark(BaseBenchmark):
 
         return result
     
+    def get_csv_columns(self) -> List[str]:
+        return ["query", "answer", "agent_answer", "score"]
+
+    async def _run_single_evaluation(self, data_dict: Dict[str, Any], agent):
+        # FIXME: parse response
+        query: str = data_dict["query"]
+        answer: str = data_dict["answer"]
+
+        response = await agent.ainvoke(query)
+        score = 0.
+        if response == answer:
+            score = 1.0
         
+        return query, answer, response, score
+
 
         

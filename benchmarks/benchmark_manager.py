@@ -5,9 +5,10 @@ This module provides the BenchmarkManager class for managing and executing
 different benchmarks in the YOPO system.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Tuple, Union, Optional
 from datasets import Dataset
 
+from base_benchmark import BaseBenchmark
 from gsm8k_bench import GSM8KBenchmark
 from gaia_bench import GAIABenchmark
 
@@ -16,7 +17,7 @@ from gaia_bench import GAIABenchmark
 ######################## HELPER FUNCTIONS ##############################
 ########################################################################
 
-def get_formatted_dataset(dataset_name: str) -> Dict[str, Dataset]:
+def get_benchmark(dataset_name: str) -> Dict[str, Dataset]:
     """
     Get formatted dataset for the specified benchmark.
     
@@ -34,8 +35,11 @@ def get_formatted_dataset(dataset_name: str) -> Dict[str, Dataset]:
     dataset_name = dataset_name.lower().strip()
     
     if dataset_name == 'gsm8k':
-        return GSM8KBenchmark().format_dataset()
+        return GSM8KBenchmark()
     elif dataset_name == 'gaia':
-        return GAIABenchmark().format_dataset()
+        return GAIABenchmark()
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets: 'gsm8k', 'gaia'")
+
+def get_training_datasets(benchmark: BaseBenchmark) -> Tuple[Union[Dataset, None], Union[Dataset, None]]:
+    return benchmark.fetch_datasets_for_training()

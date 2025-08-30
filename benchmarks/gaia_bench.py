@@ -54,7 +54,8 @@ class GAIABenchmark(BaseBenchmark):
         """
         super().__init__(
             name="GAIA",
-            local_path="your_dir_to_gaia",
+            # local_path="your_dir_to_gaia",
+            local_path="/Users/jakcieshi/Desktop/Home/Projects/FreeLan/2023",
             configs=configs or ["1", "2", "3"]
         )
         
@@ -74,6 +75,8 @@ class GAIABenchmark(BaseBenchmark):
         dataset_dict = DatasetDict()
 
         for split_name in os.listdir(self.local_path):
+            if split_name.startswith("."):
+                continue
             queries, answers = [], []
             file_names = []
             metadata_path = os.path.join(self.local_path, split_name, "metadata.jsonl")
@@ -83,7 +86,7 @@ class GAIABenchmark(BaseBenchmark):
                     if str(item["Level"]) not in self.configs:
                         continue
                     queries.append(item["Question"])
-                    answers.append(item["Final answer"] if item["Final answer"] != "?" else None)
+                    answers.append(str(item["Final answer"]) if item["Final answer"] != "?" else None)
                     if item["file_name"] != "":
                         file_names.append(os.path.join(self.local_path, split_name, item["file_name"]))
                     else: file_names.append(None)
@@ -101,7 +104,7 @@ class GAIABenchmark(BaseBenchmark):
 
         return {"default": dataset_dict}
                 
-    def format_dataset(self) -> Dict[str, Dataset]:
+    def _format_dataset(self) -> Dict[str, Dataset]:
         result: Dict[str, Dataset] = defaultdict()
         queries: Dict[str, List[str]] = defaultdict(list)
         answers: Dict[str, List[str]] = defaultdict(list)
@@ -131,3 +134,18 @@ class GAIABenchmark(BaseBenchmark):
             })
 
         return result
+
+    def get_csv_columns(self) -> List[str]:
+        return ["query", "answer", "agent_answer", "file_name", "score"]
+
+    async def _run_single_evaluation(self, data_dict: Dict[str, Any], agent):
+        # FIXME: parse response
+        query: str = data_dict["query"]
+        answer: str = data_dict["answer"]
+
+        response = await agent.ainvoke(query)
+        score = 0.
+        if response == answer:
+            score = 1.0
+        
+        return query, answer, response, data_dict["file_name"], score
